@@ -1,0 +1,12 @@
+
+HOST = '127.0.0.1'
+
+AUTH = {'baidu':{'client_id': 'XXXXX',
+                 'secret': 'XXXXX'},
+        }
+
+TORNADO_SETTINGS = {'debug': True,
+                    'cookie_secret': 'idf# &&zD!C0oOkl \\^%12@',
+                    'xsrf_cookies': True,
+                    'template_path': 'templates'}
+

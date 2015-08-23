@@ -1,0 +1,58 @@
+{% extends "index-base.html" %}
+
+{% block content %}
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-sm-9">
+        <ul class="nav nav-tabs">
+          <li role="presentation" class="active"><a href="#">最热门</a></li>
+          <li role="presentation"><a href="#">最新</a></li>
+          <li role="presentation"><a href="#">最多票</a></li>
+        </ul>
+        <div class="question row">
+          <div class="col-md-2 hidden-xs text-center">
+          </div>
+          <div class="col-md-10">
+          {% for q in out %}
+            <div class="question-name">
+              <h4><a href="/p/{{ q['_id'] }}">{{ q['title'] }}</a></h4>
+              {% for tag in q['tags'].split(',') %}
+              <div>
+                <a class="btn btn-link btn-sm" href="#" role="button">{{ tag }}</a>
+                by <a href="#"> {{ q['creator'][2] }}</a>
+                @ {{ q['lastModified'].strftime(' %Y/%m/%d  %H:%M ') }}
+              </div>
+              {% end %}
+            </div>
+          {% end %}
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-3">
+        <a class="btn btn-primary btn-lg btn-block" id="askquestion">提问</a>
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title">Suggestions</h3>
+          </div>
+          <div class="panel-body">
+            <p>"This community is for professionals and enthusiasts of our
+            products and services."</p>
+            <a href="/forum/help-1/faq" class="fa fa-array-right">"Guide
+                Lines"</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+  $('#askquestion').click(function(e) {
+    var username = Cookies.get('uname');
+    if (username) {
+        window.location.pathname = '/ask';
+    }
+    else {
+        $('#loginmodal').modal('show');
+    }
+  });
+  </script>
+{% end %}

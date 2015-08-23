@@ -1,0 +1,9 @@
+web:
+    build: .
+    restart: always
+    command: python -u main.py
+    volumes:
+        - .:/code
+    ports:
+        - "5000:5000"
+

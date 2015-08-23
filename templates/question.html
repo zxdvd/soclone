@@ -1,0 +1,163 @@
+{% extends "index-base.html" %}
+
+{% block content %}
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-sm-9">
+        <h3>{{ out['title'] }}</h3>
+        <div>
+          {% for tag in out['tags'].split(',') %}
+            <a class="btn btn-link btn-sm" href="#" role="button">{{ tag }}</a>
+          {% end %}
+          by <a href="#">{{ out.get('creator', 'XXX')[2] }}</a>
+          @ {{ out['lastModified'].strftime(' %Y/%m/%d  %H:%M ') }}
+        </div>
+        <div>{% raw out['content'] %}</div>
+        <button id="showcomments" class="btn btn-link btn-sm">
+            {% if out.get('commentCount', 0) > 0 %}  
+            {{ out.get('commentCount') }}个评论
+            {% else %}
+              添加评论
+            {% end %}
+        </button>
+        <button id="editpage" class="btn btn-link btn-sm pull-right">修改</button>
+        <div id="comments">
+          <div style="display:none">
+            {% if out.get('comments', None) %}
+              {% for c in out.get('comments') %}
+                <div class="well well-sm">
+                    {{ c.get('content', None) }}<br>
+                    by <a href="#">{{c.get('creator', 'XXX')[2]}}</a>
+                    @{{c['time'].strftime(' %Y/%m/%d  %H:%M ')}}
+                </div>
+              {% end %}
+            {% end %}
+            <textarea class="form-control" row="2"></textarea>
+            <a id="addcomment" class="btn btn-primary" href="#" role="button">评论</a>
+          </div>
+        </div>
+        {% for answer in answers %}
+          <br>
+          <hr>
+          <div id="{{answer['_id']}}" class="answer">
+            {% raw answer['content'] %}
+            by <a href="#">{{answer.get('creator','XXX')[2]}}</a>
+            @{{answer['lastModified'].strftime(' %Y/%m/%d  %H:%M ')}}
+            <button class="btn btn-link btn-sm pull-right">修改</button>
+          </div>
+        {% end %}
+        <hr>
+        <h4 id="answer-title">我来回答</h4>
+        <div style="height:13em;" id="epiceditor"></div>
+        <button id="submit-answer" class="btn btn-primary">发布回答</button>
+      </div>
+      <div class="col-sm-3">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title"></h3>
+          </div>
+          <div class="panel-body">
+          </div>
+        </div>
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title">Markdown格式技巧</h3>
+          </div>
+          <div class="panel-body">
+            <ul>
+              <li>行尾添加2个空格或者添加一个空行就能换行</li>
+              <li>斜体: *hello* 或者 _world_</li>
+              <li>加粗: **hello** 或者 __world__</li>
+              <li>代码块: 添加空行,然后代码缩进4个空格</li>
+              <li>特殊字符: 用\避免转义;\*就是*本身</li>
+              <li>python: `__name__`可以以代码形式输出__name__</li>
+              <li><a href="/help/markdown">一个简单的例子</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/epiceditor.min.js"></script>
+  <script src="/static/js/js.cookie.js"></script>
+  <script>
+    var opts = {
+        basePath: '',
+        theme: {
+            base: '/static/css/epiceditor.css',
+            preview: '/static/css/github.css',
+            editor: '/static/css/epic-dark.css'
+        },
+        button: {
+            bar: 'show'
+        },
+    }
+    var editor = new EpicEditor(opts).load();
+
+    $('#showcomments').click(function(e) {
+        $('#comments > div').toggle();
+    });
+    $('#addcomment').click(function(e) {
+        var content = $('#comments  textarea').val();
+        console.log(content);
+        $('.warning').hide();
+        if (content.length > 150) {
+            $('#comments textarea').after('<label class="warning">内容不能超过150字</label>');
+        }
+        else if (content.length > 0) {
+            var data = {content: content};
+            data._xsrf = Cookies.get('_xsrf');
+            data.pathname = window.location.pathname;
+            $.post('/ajax/post-comment', $.param(data), function(receive) {
+                json_data = $.parseJSON(receive);
+                console.log(json_data);
+            });
+        }
+    });
+
+    var answerid;
+    $('div.answer > button').click(function(e) {
+        answerid = $(this).parent().attr('id');
+        $('#answer-title').text('修改回答');
+        $.getJSON('/ajax/edit-answer', {_id:answerid}, function(data) {
+            console.log(data.content);
+            editor.unload();
+            editor.load(function() {
+                editor.importFile('epiceditor', data.content);
+            });
+        });
+    });
+
+    $('#submit-answer').click(function(event) {
+        var content = editor.exportFile();
+        $('.warning').hide();
+        if (content.length < 10 || content.length > 4000) {
+            $('#epiceditor').after('<label class="warning">内容不能少于10个字或者超过4000字</label>');
+        }
+        if (content.length > 10 && content.length < 4000) {
+            var data = {content: content};
+            data._xsrf = Cookies.get('_xsrf');
+            data.pathname = window.location.pathname;
+            if (answerid) {
+                data.answerid = answerid
+            }
+            $.post('/ajax/post-answer', $.param(data), function(receive) {
+                console.log(receive);
+                json_data = $.parseJSON(receive);
+                console.log(json_data.result);
+                if (json_data.result == 1) {
+                    console.log(json_data.pageid);
+                    location.reload();
+                }
+                else {
+                    console.log('fail to post');
+                }
+            });
+        }
+    });
+    $('#editpage').click(function(e) {
+        window.location.pathname = '/edit' + window.location.pathname;
+    });
+  </script>
+{% end %}
