@@ -13,6 +13,7 @@ if __name__ == '__main__':
         (r'/ask', AskHandler, dict(edit=False)),
         (r'/edit/p/.*', AskHandler, dict(edit=True)),
         (r'/auth/baidu', BaiduOauthHandler),
+        (r'/auth/weibo', WeiboOauthHandler),
         (r'/p/(.*)/?', ShowQuestionHandler),
         (r'/ajax/post-question', PostquestionHandler),
         (r'/ajax/post-answer', PostanswerHandler),

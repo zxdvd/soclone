@@ -8,7 +8,7 @@ import markdown
 from tornado import gen, httpclient, ioloop, web
 from pymongo import MongoClient
 
-from auths import BaiduOAuth2Mixin
+from auths import BaiduOAuth2Mixin, WeiboOAuth2Mixin
 from settings import AUTH, HOST
 
 mongo = MongoClient('mongodb://%s:27017' % HOST)
@@ -47,9 +47,11 @@ class BaseHandler(web.RequestHandler):
             self.finish()
 
     def add_user(self, db_handler, domain, token, **body):
-        """Add user and related info to mongodb and cookie"""
+        """Add user and related info to mongodb and cookie.
+        uid should be stored as string but not int"""
         uid = body.get('uid', None)
         if uid:
+            uid = str(uid)
             #save user info securely and save an unsafe "uname" cookie so that
             #client js can get username
             uname = body.get('uname', uid)
@@ -197,10 +199,7 @@ class EditAnswerHandler(BaseHandler):
     @web.authenticated
     def get(self):
         _id = self.get_argument('_id', '')
-        if not objectid.ObjectId.is_valid(_id):
-            self.write(json.dumps({'result':1, 'msg': 'invalid answer id!'}))
-            self.finish()
-        _id = objectid.ObjectId(_id)
+        _id = self.mongo_check_id(_id)
         limits = {i: 1 for i in ('content', 'creator')}
         answer = dbPosts.answers.find_one({'_id': _id}, limits)
         if not answer:
@@ -219,18 +218,23 @@ class PostCommentHandler(BaseHandler):
     @web.authenticated
     def post(self):
         _id = self.get_argument('pathname', '/p/')[3:]
-        if not objectid.ObjectId.is_valid(_id):
-            self.write(json.dumps({'result':-1, 'msg':'fail to post answer!'}))
-            self.finish()
-        _id = objectid.ObjectId(_id)
+        _id = self.mongo_check_id(_id)
         content = self.get_argument('content', None)
         if content:
             comment = dict(content=content)
             comment['creator'] = self.current_user
             comment['time'] = datetime.now()
-            r = dbPosts.posts.update_one({'_id': _id},
-                    {'$inc': {'commentCount': 1}, '$push': {'comments': comment}})
-            self.write_result(r.modified_count, ok={'pageid': str(_id)})
+            #if answerid exists, then it's a answer comment
+            answerid = self.get_argument('answerid', None)
+            if answerid:
+                answerid = self.mongo_check_id(answerid)
+                r = dbPosts.answers.update_one({'_id': answerid},
+                        {'$inc':{'commentCount':1}, '$push':{'comments':comment}})
+                self.write_result(r.modified_count, ok={'pageid': str(_id)})
+            else:
+                r = dbPosts.posts.update_one({'_id': _id},
+                        {'$inc': {'commentCount': 1}, '$push': {'comments': comment}})
+                self.write_result(r.modified_count, ok={'pageid': str(_id)})
 
 class BaiduOauthHandler(BaseHandler, BaiduOAuth2Mixin):
     @gen.coroutine
@@ -255,3 +259,44 @@ class BaiduOauthHandler(BaseHandler, BaiduOAuth2Mixin):
                 redirect_uri='http://%s:5000/auth/baidu' % HOST,
                 client_id=_client_id,
                 response_type='code')
+
+class WeiboOauthHandler(BaseHandler, WeiboOAuth2Mixin):
+
+    _OAUTH_GET_UID_URL = 'https://api.weibo.com/oauth2/get_token_info'
+
+    @gen.coroutine
+    def get(self):
+        _client_id = AUTH['weibo']['client_id']
+        _secret = AUTH['weibo']['secret']
+        if self.get_argument('code', False):
+            print(self.get_argument('code'))
+            auth_info = yield self.get_authenticated_user(
+                redirect_uri='http://%s:5000/auth/weibo' % HOST,
+                code = self.get_argument('code'),
+                client_id=_client_id,
+                client_secret=_secret)
+            token = auth_info.get('access_token', None)
+            if token:
+                self.set_secure_cookie('weibo_token', token)
+                get_uid = yield self.weibo_request(self._OAUTH_GET_UID_URL,
+                        post_args={}, access_token=token)
+                #get_uid has uid but no username which is I needed, then get it
+                if get_uid.get('uid', None):
+                    user_info = yield self.weibo_request(
+                            'https://api.weibo.com/2/users/show.json',
+                            access_token=token, uid=get_uid['uid'])
+                    if user_info.get('id', None):
+                        user_info['uid'] = user_info.pop('id')      #id to uid
+                        user_info['uname'] = user_info['screen_name']
+                        user_info.pop('domain')
+                        self.add_user(dbUsers.users, domain='weibo',
+                            token=token, **user_info)
+                        self.redirect('/')
+                    else:
+                        print('TODO XXX: failed to get user_info')
+                else:
+                    print('TODO XXX: failed to get UID')
+        else:
+            yield self.authorize_redirect(
+                redirect_uri='http://%s:5000/auth/weibo' % HOST,
+                client_id=_client_id)

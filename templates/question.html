@@ -4,6 +4,7 @@
   <div class="container-fluid">
     <div class="row">
       <div class="col-sm-9">
+       <div>
         <h3>{{ out['title'] }}</h3>
         <div>
           {% for tag in out['tags'].split(',') %}
@@ -13,7 +14,7 @@
           @ {{ out['lastModified'].strftime(' %Y/%m/%d  %H:%M ') }}
         </div>
         <div>{% raw out['content'] %}</div>
-        <button id="showcomments" class="btn btn-link btn-sm">
+        <button class="btn btn-link btn-sm showcomments">
             {% if out.get('commentCount', 0) > 0 %}  
             {{ out.get('commentCount') }}个评论
             {% else %}
@@ -21,21 +22,21 @@
             {% end %}
         </button>
         <button id="editpage" class="btn btn-link btn-sm pull-right">修改</button>
-        <div id="comments">
-          <div style="display:none">
-            {% if out.get('comments', None) %}
-              {% for c in out.get('comments') %}
-                <div class="well well-sm">
-                    {{ c.get('content', None) }}<br>
-                    by <a href="#">{{c.get('creator', 'XXX')[2]}}</a>
-                    @{{c['time'].strftime(' %Y/%m/%d  %H:%M ')}}
-                </div>
-              {% end %}
+        <div class="comments" style="display:none">
+          {% if out.get('comments', None) %}
+            {% for c in out.get('comments') %}
+              <div class="well well-sm">
+                  {{ c.get('content', None) }}<br>
+                  by <a href="#">{{c.get('creator', 'XXX')[2]}}</a>
+                  @{{c['time'].strftime(' %Y/%m/%d  %H:%M ')}}
+              </div>
             {% end %}
-            <textarea class="form-control" row="2"></textarea>
-            <a id="addcomment" class="btn btn-primary" href="#" role="button">评论</a>
-          </div>
+          {% end %}
+          <textarea class="form-control" row="2"></textarea>
+          <a class="btn btn-primary addcomment" href="#" role="button">评论</a>
         </div>
+        <hr>
+       </div>
         {% for answer in answers %}
           <br>
           <hr>
@@ -43,7 +44,28 @@
             {% raw answer['content'] %}
             by <a href="#">{{answer.get('creator','XXX')[2]}}</a>
             @{{answer['lastModified'].strftime(' %Y/%m/%d  %H:%M ')}}
-            <button class="btn btn-link btn-sm pull-right">修改</button>
+            <button class="btn btn-link btn-sm pull-right editanswer">修改</button>
+            <br>
+            <button class="btn btn-link btn-sm showcomments">
+              {% if answer.get('commentCount', 0) > 0 %}  
+              {{ answer.get('commentCount') }}个评论
+              {% else %}
+                添加评论
+              {% end %}
+            </button>
+            <div class="comments" style="display:none">
+              {% if answer.get('comments', None) %}
+                {% for c in answer.get('comments') %}
+                  <div class="well well-sm">
+                      {{ c.get('content', None) }}<br>
+                      by <a href="#">{{c.get('creator', 'XXX')[2]}}</a>
+                      @{{c['time'].strftime(' %Y/%m/%d  %H:%M ')}}
+                  </div>
+                {% end %}
+              {% end %}
+              <textarea class="form-control" row="2"></textarea>
+              <a class="btn btn-primary addcomment" href="#" role="button">评论</a>
+            </div>
           </div>
         {% end %}
         <hr>
@@ -95,20 +117,25 @@
     }
     var editor = new EpicEditor(opts).load();
 
-    $('#showcomments').click(function(e) {
-        $('#comments > div').toggle();
+    $('button.showcomments').click(function(e) {
+        $(this).siblings('.comments').toggle();
     });
-    $('#addcomment').click(function(e) {
-        var content = $('#comments  textarea').val();
-        console.log(content);
+    $('a.addcomment').click(function(e) {
+        var content = $(this).prev('textarea').val();
+        //check if it's a post comment or a answer comment
         $('.warning').hide();
         if (content.length > 150) {
-            $('#comments textarea').after('<label class="warning">内容不能超过150字</label>');
+            $(this).before('<label class="warning">内容不能超过150字</label>');
         }
         else if (content.length > 0) {
             var data = {content: content};
             data._xsrf = Cookies.get('_xsrf');
             data.pathname = window.location.pathname;
+            //check if it's a post comment or a answer comment
+            var answerid = $(this).parent().parent().attr('id');
+            if (answerid) {
+                data.answerid = answerid;
+            }
             $.post('/ajax/post-comment', $.param(data), function(receive) {
                 json_data = $.parseJSON(receive);
                 console.log(json_data);
@@ -117,7 +144,7 @@
     });
 
     var answerid;
-    $('div.answer > button').click(function(e) {
+    $('div.answer > button.editanswer').click(function(e) {
         answerid = $(this).parent().attr('id');
         $('#answer-title').text('修改回答');
         $.getJSON('/ajax/edit-answer', {_id:answerid}, function(data) {

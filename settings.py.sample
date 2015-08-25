@@ -3,6 +3,8 @@ HOST = '127.0.0.1'
 
 AUTH = {'baidu':{'client_id': 'XXXXX',
                  'secret': 'XXXXX'},
+        'weibo':{'client_id': 'XXXXX',
+                 'secret': 'XXXXX'},
         }
 
 TORNADO_SETTINGS = {'debug': True,
