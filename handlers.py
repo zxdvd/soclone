@@ -9,7 +9,7 @@ from tornado import gen, httpclient, ioloop, web
 from pymongo import MongoClient
 
 from auths import BaiduOAuth2Mixin, WeiboOAuth2Mixin
-from settings import AUTH, HOST
+from settings import AUTH, HOST, REDIRECT_HOST
 
 mongo = MongoClient('mongodb://%s:27017' % HOST)
 
@@ -24,7 +24,7 @@ class BaseHandler(web.RequestHandler):
         if domain and uid:
             return tuple(i.decode('utf-8') for i in (domain, uid, username))
         else:
-            return None
+            return (None, None, None)
 
     def mongo_check_id(self, _id):
         if _id and objectid.ObjectId.is_valid(_id):
@@ -94,7 +94,7 @@ class ShowQuestionHandler(BaseHandler):
         _id = self.mongo_check_id(pageid)
         create_time = _id.generation_time
         limits = {i: 1 for i in ('content', 'creator', 'tags', 'title',
-            'lastModified', 'commentCount', 'comments')}
+            'lastModified', 'commentCount', 'comments', 'voteCount')}
         question = dbPosts.posts.find_one({'_id': _id}, limits)
         if not question:
             self.redirect('/')
@@ -236,6 +236,46 @@ class PostCommentHandler(BaseHandler):
                         {'$inc': {'commentCount': 1}, '$push': {'comments': comment}})
                 self.write_result(r.modified_count, ok={'pageid': str(_id)})
 
+class VoteHandler(BaseHandler):
+    """handler for /ajax/vote. Store vote under user collection."""
+    @web.authenticated
+    def get(self):
+        _id = self.get_argument('_id', None)
+        content = self.get_argument('content', None)
+        vote = self.get_argument('vote', None)
+        _id = self.mongo_check_id(_id)
+        if content and vote:
+            if vote == 'up':
+                voteresult = True
+            elif vote == 'down':
+                voteresult = False
+            else:
+                self.write_result(None)
+            domain, uid = self.current_user[:2]
+            user = dict(authdomain=domain, uid=uid)
+            #the user document will look like:
+            #{authdomain: baidu, uid:XXX,
+            #    votes: {question_id_1:true,    //true means vote up
+            #            question_id_2:false}   //false means vote down
+            #}
+            #TODO XXX: need to think about a user vote up then vote down
+            r = dbUsers.users.update_one(user,
+                    {'$set':{'votes.'+str(_id): voteresult}})
+            self.write_result(r.modified_count, finish=False)
+            #if document not modified, that means user already voted
+            #then needn't to inc/dec the voteCount
+            if r.modified_count:
+                #increase/decrease the vote count of question/answer
+                #TODO XXX: this should not be done here
+                #should be send to a task queue and let the queue write to db
+                inc = 1 if vote=='up' else -1
+                if content == 'answer':
+                    dbPosts.answers.update_one({'_id':_id},
+                            {'$inc': {'voteCount': inc}})
+                if content == 'question':
+                    dbPosts.posts.update_one({'_id':_id},
+                            {'$inc': {'voteCount': inc}})
+
 class BaiduOauthHandler(BaseHandler, BaiduOAuth2Mixin):
     @gen.coroutine
     def get(self):
@@ -243,7 +283,7 @@ class BaiduOauthHandler(BaseHandler, BaiduOAuth2Mixin):
         _secret = AUTH['baidu']['secret']
         if self.get_argument('code', False):
             auth_info = yield self.get_authenticated_user(
-                redirect_uri='http://%s:5000/auth/baidu' % HOST,
+                redirect_uri='http://%s/auth/baidu' % REDIRECT_HOST,
                 code = self.get_argument('code'),
                 client_id=_client_id,
                 client_secret=_secret)
@@ -256,7 +296,7 @@ class BaiduOauthHandler(BaseHandler, BaiduOAuth2Mixin):
                 self.redirect('/')
         else:
             yield self.authorize_redirect(
-                redirect_uri='http://%s:5000/auth/baidu' % HOST,
+                redirect_uri='http://%s/auth/baidu' % REDIRECT_HOST,
                 client_id=_client_id,
                 response_type='code')
 
@@ -271,7 +311,7 @@ class WeiboOauthHandler(BaseHandler, WeiboOAuth2Mixin):
         if self.get_argument('code', False):
             print(self.get_argument('code'))
             auth_info = yield self.get_authenticated_user(
-                redirect_uri='http://%s:5000/auth/weibo' % HOST,
+                redirect_uri='http://%s/auth/weibo' % REDIRECT_HOST,
                 code = self.get_argument('code'),
                 client_id=_client_id,
                 client_secret=_secret)
@@ -298,5 +338,5 @@ class WeiboOauthHandler(BaseHandler, WeiboOAuth2Mixin):
                     print('TODO XXX: failed to get UID')
         else:
             yield self.authorize_redirect(
-                redirect_uri='http://%s:5000/auth/weibo' % HOST,
+                redirect_uri='http://%s/auth/weibo' % REDIRECT_HOST,
                 client_id=_client_id)

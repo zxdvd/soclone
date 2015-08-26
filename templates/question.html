@@ -4,43 +4,70 @@
   <div class="container-fluid">
     <div class="row">
       <div class="col-sm-9">
-       <div>
-        <h3>{{ out['title'] }}</h3>
         <div>
-          {% for tag in out['tags'].split(',') %}
-            <a class="btn btn-link btn-sm" href="#" role="button">{{ tag }}</a>
-          {% end %}
-          by <a href="#">{{ out.get('creator', 'XXX')[2] }}</a>
-          @ {{ out['lastModified'].strftime(' %Y/%m/%d  %H:%M ') }}
-        </div>
-        <div>{% raw out['content'] %}</div>
-        <button class="btn btn-link btn-sm showcomments">
-            {% if out.get('commentCount', 0) > 0 %}  
-            {{ out.get('commentCount') }}个评论
-            {% else %}
-              添加评论
-            {% end %}
-        </button>
-        <button id="editpage" class="btn btn-link btn-sm pull-right">修改</button>
-        <div class="comments" style="display:none">
-          {% if out.get('comments', None) %}
-            {% for c in out.get('comments') %}
-              <div class="well well-sm">
-                  {{ c.get('content', None) }}<br>
-                  by <a href="#">{{c.get('creator', 'XXX')[2]}}</a>
-                  @{{c['time'].strftime(' %Y/%m/%d  %H:%M ')}}
+          <h3>{{ out['title'] }}</h3>
+            <div class="row">
+              <div class="col-sm-1">
+                <br>
+                <a href="javascript:void(0)" class="votelink">
+                  <span class="glyphicon glyphicon-chevron-up"></span>
+                  <br>
+                  <span>{{ out.get('voteCount', 0) }}</span>
+                  <br>
+                </a>
+                <a href="javascript:void(0)" class="votelink">
+                  <span class="glyphicon glyphicon-chevron-down"></span>
+                </a>
               </div>
-            {% end %}
-          {% end %}
-          <textarea class="form-control" row="2"></textarea>
-          <a class="btn btn-primary addcomment" href="#" role="button">评论</a>
+              <div class="col-sm-11">
+                <div>
+                  {% for tag in out['tags'].split(',') %}
+                    <a class="btn btn-link btn-sm" href="#" role="button">{{ tag }}</a>
+                  {% end %}
+                  by <a href="#">{{ out.get('creator', 'XXX')[2] }}</a>
+                  @ {{ out['lastModified'].strftime(' %Y/%m/%d  %H:%M ') }}
+                </div>
+                <div>{% raw out['content'] %}</div>
+                <button class="btn btn-link btn-sm showcomments">
+                    {% if out.get('commentCount', 0) > 0 %}  
+                    {{ out.get('commentCount') }}个评论
+                    {% else %}
+                      添加评论
+                    {% end %}
+                </button>
+                <button id="editpage" class="btn btn-link btn-sm pull-right">修改</button>
+                <div class="comments" style="display:none">
+                  {% if out.get('comments', None) %}
+                    {% for c in out.get('comments') %}
+                      <div class="well well-sm">
+                          {{ c.get('content', None) }}<br>
+                          by <a href="#">{{c.get('creator', 'XXX')[2]}}</a>
+                          @{{c['time'].strftime(' %Y/%m/%d  %H:%M ')}}
+                      </div>
+                    {% end %}
+                  {% end %}
+                  <textarea class="form-control" row="2"></textarea>
+                  <a class="btn btn-primary addcomment" href="#" role="button">评论</a>
+                </div>
+              </div>
+            </div>
         </div>
         <hr>
-       </div>
         {% for answer in answers %}
-          <br>
-          <hr>
-          <div id="{{answer['_id']}}" class="answer">
+        <div class="row">
+          <div class="col-sm-1">
+            <br>
+            <a href="javascript:void(0)" class="votelink">
+              <span class="glyphicon glyphicon-chevron-up"></span>
+              <br>
+              <span>{{ answer.get('voteCount', 0) }}</span>
+              <br>
+            </a>
+            <a href="javascript:void(0)" class="votelink">
+              <span class="glyphicon glyphicon-chevron-down"></span>
+            </a>
+          </div>
+          <div id="{{answer['_id']}}" class="answer col-sm-11">
             {% raw answer['content'] %}
             by <a href="#">{{answer.get('creator','XXX')[2]}}</a>
             @{{answer['lastModified'].strftime(' %Y/%m/%d  %H:%M ')}}
@@ -67,8 +94,10 @@
               <a class="btn btn-primary addcomment" href="#" role="button">评论</a>
             </div>
           </div>
+          <br>
+          <hr>
+        </div>
         {% end %}
-        <hr>
         <h4 id="answer-title">我来回答</h4>
         <div style="height:13em;" id="epiceditor"></div>
         <button id="submit-answer" class="btn btn-primary">发布回答</button>
@@ -139,6 +168,12 @@
             $.post('/ajax/post-comment', $.param(data), function(receive) {
                 json_data = $.parseJSON(receive);
                 console.log(json_data);
+                if (json_data.result == 1) {
+                    location.reload();
+                }
+                else {
+                    console.log('fail to post comment');
+                }
             });
         }
     });
@@ -183,6 +218,30 @@
             });
         }
     });
+
+    $('.votelink').click(function(e) {
+        var content = 'answer';
+        var contentid = $(this).parent().next().attr('id');
+        if (! contentid) {        //it's a vote of question
+            content = 'question';
+            contentid = window.location.pathname.slice(3);
+        }
+        var voteclass = $(this).children(':first').attr('class');
+        var vote = '';
+        if (voteclass.indexOf('up') > -1) {
+            vote = 'up';
+        }
+        if (voteclass.indexOf('down') > -1) {
+            vote = 'down';
+        }
+        var options = {content:content, _id:contentid, vote:vote};
+        console.log(options);
+        $.getJSON('/ajax/vote', options, function(data) {
+            console.log(data);
+            location.reload();
+        });
+    });
+
     $('#editpage').click(function(e) {
         window.location.pathname = '/edit' + window.location.pathname;
     });

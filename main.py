@@ -20,6 +20,7 @@ if __name__ == '__main__':
         (r'/ajax/post-comment', PostCommentHandler),
         (r'/ajax/edit-question', EditQuestionHandler),
         (r'/ajax/edit-answer', EditAnswerHandler),
+        (r'/ajax/vote', VoteHandler),
         (r'/static/(.*)', web.StaticFileHandler, {'path': './static'}),
         #(r'/ajax/getbug/([\d]+)', GetbugHandler),
         #(r'/expirerun/([\d]+)', ExpireRunHandler),
