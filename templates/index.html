@@ -16,13 +16,13 @@
           {% for q in out %}
             <div class="question-name">
               <h4><a href="/p/{{ q['_id'] }}">{{ q['title'] }}</a></h4>
-              {% for tag in q['tags'].split(',') %}
               <div>
-                <a class="btn btn-link btn-sm" href="#" role="button">{{ tag }}</a>
+              {% for tag in q['tags'].split(',') %}
+              <a class="btn btn-link btn-sm" href="/tag/{{ tag }}" role="button">{{ tag }}</a>
+              {% end %}
                 by <a href="#"> {{ q.get('creator', 'XXX')[2] }}</a>
                 @ {{ q['lastModified'].strftime(' %Y/%m/%d  %H:%M ') }}
               </div>
-              {% end %}
             </div>
           {% end %}
           </div>

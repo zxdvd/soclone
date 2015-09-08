@@ -49,7 +49,7 @@ class BaseHandler(web.RequestHandler):
     def add_user(self, db_handler, domain, token, **body):
         """Add user and related info to mongodb and cookie.
         uid should be stored as string but not int"""
-        uid = body.get('uid', None)
+        uid = body.pop('uid', None)
         if uid:
             uid = str(uid)
             #save user info securely and save an unsafe "uname" cookie so that
@@ -73,6 +73,21 @@ class IndexHandler(BaseHandler):
         r = dbPosts.posts.find({}, limits)
         questions = []
         for q in r:
+            q['_id'] = str(q['_id'])
+            questions.append(q)
+        self.render('index.html', out=questions)
+
+class TagHandler(BaseHandler):
+    def get(self, tag):
+        #XXX TODO, will think more about limit, batch_size in the future
+        #should not return all documents in a query
+        print(tag)
+        limits = {i: 1 for i in ('content', 'creator', 'tags', 'title',
+            'lastModified')}
+        r = dbPosts.posts.find({'tags': {'$regex': '%s' % tag}}, limits)
+        questions = []
+        for q in r:
+            print(q)
             q['_id'] = str(q['_id'])
             questions.append(q)
         self.render('index.html', out=questions)
@@ -150,7 +165,6 @@ class PostquestionHandler(BaseHandler):
                     {'$set': post, '$push': {'history': post},
                         '$currentDate': {'lastModified': True}},
                 upsert=True)
-            _id = r.upserted_id
             if r.upserted_id:
                 self.write(json.dumps({'result':1, 'pageid': str(_id)}))
                 self.finish()
@@ -261,6 +275,7 @@ class VoteHandler(BaseHandler):
             #TODO XXX: need to think about a user vote up then vote down
             r = dbUsers.users.update_one(user,
                     {'$set':{'votes.'+str(_id): voteresult}})
+            print(r.matched_count, r.modified_count)
             self.write_result(r.modified_count, finish=False)
             #if document not modified, that means user already voted
             #then needn't to inc/dec the voteCount

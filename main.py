@@ -15,6 +15,7 @@ if __name__ == '__main__':
         (r'/auth/baidu', BaiduOauthHandler),
         (r'/auth/weibo', WeiboOauthHandler),
         (r'/p/(.*)/?', ShowQuestionHandler),
+        (r'/tag/(.*)', TagHandler),
         (r'/ajax/post-question', PostquestionHandler),
         (r'/ajax/post-answer', PostanswerHandler),
         (r'/ajax/post-comment', PostCommentHandler),
@@ -22,9 +23,6 @@ if __name__ == '__main__':
         (r'/ajax/edit-answer', EditAnswerHandler),
         (r'/ajax/vote', VoteHandler),
         (r'/static/(.*)', web.StaticFileHandler, {'path': './static'}),
-        #(r'/ajax/getbug/([\d]+)', GetbugHandler),
-        #(r'/expirerun/([\d]+)', ExpireRunHandler),
-        #(r'/([.@\d\w]+)', PersonHandler),
         ], **TORNADO_SETTINGS)
     app.listen(5000)
     ioloop.IOLoop.instance().start()
