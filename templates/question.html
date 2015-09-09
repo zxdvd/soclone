@@ -21,8 +21,8 @@
               </div>
               <div class="col-sm-11">
                 <div>
-                  {% for tag in out['tags'].split(',') %}
-                    <a class="btn btn-link btn-sm" href="#" role="button">{{ tag }}</a>
+                  {% for tag in out['tags'] %}
+                  <a class="btn btn-link btn-sm" href="/tag/{{ tag }}" role="button">{{ tag }}</a>
                   {% end %}
                   by <a href="#">{{ out.get('creator', 'XXX')[2] }}</a>
                   @ {{ out['lastModified'].strftime(' %Y/%m/%d  %H:%M ') }}
@@ -131,7 +131,6 @@
   </div>
 
   <script src="/static/js/epiceditor.min.js"></script>
-  <script src="/static/js/js.cookie.js"></script>
   <script>
     var opts = {
         basePath: '',

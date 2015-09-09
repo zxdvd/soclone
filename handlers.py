@@ -81,13 +81,11 @@ class TagHandler(BaseHandler):
     def get(self, tag):
         #XXX TODO, will think more about limit, batch_size in the future
         #should not return all documents in a query
-        print(tag)
         limits = {i: 1 for i in ('content', 'creator', 'tags', 'title',
             'lastModified')}
-        r = dbPosts.posts.find({'tags': {'$regex': '%s' % tag}}, limits)
+        r = dbPosts.posts.find({'tags': tag}, limits)
         questions = []
         for q in r:
-            print(q)
             q['_id'] = str(q['_id'])
             questions.append(q)
         self.render('index.html', out=questions)
@@ -159,7 +157,8 @@ class PostquestionHandler(BaseHandler):
 
         if title and content:
             post = dict(title=title, content=content)
-            post['tags'] = self.get_argument('tags', None)
+            tags = self.get_argument('tags', '').split(',')
+            post['tags'] = [tag.strip() for tag in tags]
             post['creator'] = self.current_user
             r = dbPosts.posts.update_one({'_id': _id},
                     {'$set': post, '$push': {'history': post},
