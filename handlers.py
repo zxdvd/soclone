@@ -24,7 +24,7 @@ class BaseHandler(web.RequestHandler):
         if domain and uid:
             return tuple(i.decode('utf-8') for i in (domain, uid, username))
         else:
-            return (None, None, None)
+            return None
 
     def mongo_check_id(self, _id):
         if _id and objectid.ObjectId.is_valid(_id):
