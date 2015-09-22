@@ -2,6 +2,7 @@
 from tornado import ioloop, log
 
 from handlers import *
+from loginhandler import *
 from settings import TORNADO_SETTINGS
 
 #pretty log for tornado server
@@ -12,6 +13,7 @@ if __name__ == '__main__':
         (r'/', IndexHandler),
         (r'/ask', AskHandler, dict(edit=False)),
         (r'/edit/p/.*', AskHandler, dict(edit=True)),
+        (r'/auth/github', GithubOauthHandler),
         (r'/auth/baidu', BaiduOauthHandler),
         (r'/auth/weibo', WeiboOauthHandler),
         (r'/p/(.*)/?', ShowQuestionHandler),
