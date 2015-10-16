@@ -83,17 +83,17 @@
         var tags = $('#tags').val();
         var content = editor.exportFile();
         $('.warning').hide();
-        if (title.length == 0 || title.length > 50) {
-            $('#title').after('<label class="warning">标题不能为空或者超过50个字</label>');
+        if (title.length == 0 || title.length > 130) {
+            $('#title').after('<label class="warning">标题不能为空或者超过130个字</label>');
         }
-        if (content.length == 0 || content.length > 3000) {
-            $('#epiceditor').after('<label class="warning">内容不能为空或者超过3000个字</label>');
+        if (content.length == 0 || content.length > 5000) {
+            $('#epiceditor').after('<label class="warning">内容不能为空或者超过5000个字</label>');
         }
         if (tags.length > 50) {
             $('#tags').after('<label class="warning">标签不能超过50个字</label>');
         }
-        if (title.length > 0 && title.length < 50 && content.length > 0
-                && content.length < 3000 && tags.length < 50) {
+        if (title.length > 0 && title.length < 130 && content.length > 0
+                && content.length < 5000 && tags.length < 50) {
             var data = {tags: tags, title: title, content: content};
             {% if edit %}
                 data.editid = editid;
