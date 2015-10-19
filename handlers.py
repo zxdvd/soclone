@@ -1,7 +1,7 @@
 
 import json
 from bson import objectid
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 import markdown
@@ -49,17 +49,27 @@ class IndexHandler(BaseHandler):
     def get(self):
         #XXX TODO, will think more about limit, batch_size in the future
         #should not return all documents in a query
+        page = self.get_argument('page', '1')
+        try:
+            page = int(page)
+        except ValueError:
+            page = 1
         limits = {i: 1 for i in ('content', 'creator', 'tags', 'title',
             'lastModified')}
-        r = dbPosts.posts.find({}, limits)
+        page = page -1              #first page skip 0, second skip 1*10
+        r = dbPosts.posts.find({}, limits).skip(page*10).limit(10)
         questions = []
         for q in r:
             q['_id'] = str(q['_id'])
+            #TODO XXX: a rough way to convert time to china localtime
+            q['lastModified'] = q['lastModified'] + timedelta(hours=8)
             questions.append(q)
         self.render('index.html', out=questions)
 
 class TagHandler(BaseHandler):
     def get(self, tag):
+        #XXX TODO, try to share a same based handler or method with index
+        #handler in the future
         #XXX TODO, will think more about limit, batch_size in the future
         #should not return all documents in a query
         limits = {i: 1 for i in ('content', 'creator', 'tags', 'title',
