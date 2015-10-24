@@ -1,4 +1,5 @@
 
+import json
 from urllib.parse import quote
 
 from tornado import gen, web
@@ -21,9 +22,8 @@ class BaseHandler(web.RequestHandler):
             #save user info securely and save an unsafe "uname" cookie so that
             #client js can get username
             uname = body.get('uname', uid)
-            for (k,v) in [('authdomain', domain), ('uid', uid), ('username',
-                uname), ('token', token)]:
-                self.set_secure_cookie(k, v)
+            scookies = json.dumps([domain, uid, uname])
+            self.set_secure_cookie('scookies', scookies)
             #some usernames has characters that cookie disallowed, encode it
             self.set_cookie('uname', quote(uname))
             body.update(authdomain=domain, token=token)
@@ -32,6 +32,7 @@ class BaseHandler(web.RequestHandler):
             print('modified_count:', r.modified_count)
 
 class GithubOauthHandler(BaseHandler, GithubOAuth2Mixin):
+    """TODO XXX could get token from cookie in the future"""
     @gen.coroutine
     def get(self):
         _client_id = AUTH['github']['client_id']
@@ -44,7 +45,6 @@ class GithubOauthHandler(BaseHandler, GithubOAuth2Mixin):
                 client_secret=_secret)
             token = auth_info.get('access_token', None)
             if token:
-                self.set_secure_cookie('github_token', token)
                 user_info = yield self.github_request('/user',
                         access_token=token)
                 user_info['uid'] = user_info.get('id')
@@ -69,7 +69,6 @@ class BaiduOauthHandler(BaseHandler, BaiduOAuth2Mixin):
                 client_secret=_secret)
             token = auth_info.get('access_token', None)
             if token:
-                self.set_secure_cookie('baidu_token', token)
                 user_info = yield self.baidu_request('/passport/users/getLoggedInUser',
                         post_args={}, access_token=token)
                 self.add_user(dbUsers.users, domain='baidu', token=token, **user_info)
@@ -97,7 +96,6 @@ class WeiboOauthHandler(BaseHandler, WeiboOAuth2Mixin):
                 client_secret=_secret)
             token = auth_info.get('access_token', None)
             if token:
-                self.set_secure_cookie('weibo_token', token)
                 get_uid = yield self.weibo_request(self._OAUTH_GET_UID_URL,
                         post_args={}, access_token=token)
                 #get_uid has uid but no username which is I needed, then get it

@@ -17,13 +17,12 @@ dbUsers = mongo.users
 
 class BaseHandler(web.RequestHandler):
     def get_current_user(self):
-        domain = self.get_secure_cookie('authdomain')
-        uid = self.get_secure_cookie('uid')
-        username = self.get_secure_cookie('username')
-        if domain and uid:
-            return tuple(i.decode('utf-8') for i in (domain, uid, username))
-        else:
-            return None
+        scookies = self.get_secure_cookie('scookies')
+        if scookies:
+            scookies = json.loads(scookies.decode('utf-8'))
+            if len(scookies) > 2 and scookies[0] and scookies[1]:
+                return scookies
+        return None
 
     def mongo_check_id(self, _id):
         if _id and objectid.ObjectId.is_valid(_id):
