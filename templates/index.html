@@ -24,7 +24,7 @@
               {% for tag in q['tags'] %}
               <a class="btn btn-link btn-sm" href="/tag/{{ tag }}" role="button">{{ tag }}</a>
               {% end %}
-                by <a href="#"> {{ q.get('creator', 'XXX')[2] }}</a>
+              by <a href="/user/{{q.get('creator','X')[0]}}_{{q.get('creator','XX')[1]}}"> {{q.get('creator','XXX')[2]}}</a>
                 @ {{ q['lastModified'].strftime(' %Y/%m/%d  %H:%M ') }}
               </div>
             </div>
@@ -33,9 +33,9 @@
         </div>
         <ul class="pagination">
           <li class="disabled"><a href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>
-          <li><a href="/?page=1">1 <span class="sr-only">(current)</span></a></li>
-          <li><a href="/?page=2">2 </a></li>
-          <li><a href="/?page=3">3 </a></li>
+          <li><a href="?page=1">1 <span class="sr-only">(current)</span></a></li>
+          <li><a href="?page=2">2 </a></li>
+          <li><a href="?page=3">3 </a></li>
           <li><a href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>
         </ul>
       </div>

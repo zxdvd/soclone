@@ -1,0 +1,19 @@
+{% extends "index-base.html" %}
+
+{% block head %}
+<title>{{ items.get('user', '') }} - BFH</title>
+{% end %}
+
+{% block content %}
+<p>{{ items.get('user', '') }}</p>
+<p>{{ items.get('descr', '') }}</p>
+<p>{{ items.get('answer_count', '') }}</p>
+<p>{{ items.get('question_count', '') }}</p>
+<p>{{ items.get('member_time', '') }}</p>
+{% for answer in items.get('answers', []) %}
+  <p>{{ answer }}</p>
+{% end %}
+{% for question in items.get('questions', []) %}
+  <p>{{ question['title'] }}</p>
+{% end %}
+{% end %}

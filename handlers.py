@@ -45,9 +45,11 @@ class BaseHandler(web.RequestHandler):
             self.finish()
 
 class IndexHandler(BaseHandler):
-    def get(self):
-        #XXX TODO, will think more about limit, batch_size in the future
-        #should not return all documents in a query
+    def get(self, tag=None):
+        if tag:
+            flt = {'tags': tag}
+        else:
+            flt = {}
         page = self.get_argument('page', '1')
         try:
             page = int(page)
@@ -55,8 +57,9 @@ class IndexHandler(BaseHandler):
             page = 1
         limits = {i: 1 for i in ('content', 'creator', 'tags', 'title',
             'lastModified')}
-        page = page -1              #first page skip 0, second skip 1*10
-        r = dbPosts.posts.find({}, limits).skip(page*10).limit(10)
+        page = page - 1              #first page skip 0, second skip 1*10
+        r = dbPosts.posts.find(flt, limits, sort=[('lastModified', -1)],
+                skip=page*10, limit=10)
         questions = []
         for q in r:
             q['_id'] = str(q['_id'])
@@ -65,20 +68,21 @@ class IndexHandler(BaseHandler):
             questions.append(q)
         self.render('index.html', out=questions)
 
-class TagHandler(BaseHandler):
-    def get(self, tag):
-        #XXX TODO, try to share a same based handler or method with index
-        #handler in the future
-        #XXX TODO, will think more about limit, batch_size in the future
-        #should not return all documents in a query
-        limits = {i: 1 for i in ('content', 'creator', 'tags', 'title',
-            'lastModified')}
-        r = dbPosts.posts.find({'tags': tag}, limits)
-        questions = []
-        for q in r:
-            q['_id'] = str(q['_id'])
-            questions.append(q)
-        self.render('index.html', out=questions)
+class UserHandler(BaseHandler):
+    def get(self, user):
+        if '_' not in user:
+            self.redirect('/')
+        domain, uid = user.split('_', 1)
+        items={}
+        limits = {i: 1 for i in ('creator', 'tags', 'title')}
+        r = dbPosts.posts.find({'creator': {'$all': [domain, uid]}},
+                limits).limit(4)
+        items['questions'] = []
+        for i in r:
+            i['_id'] = str(i['_id'])
+            items['questions'].append(i)
+
+        self.render('user.html', items = items)
 
 class AskHandler(BaseHandler):
     """handler for /ask and /edit/p/id.
@@ -102,10 +106,12 @@ class ShowQuestionHandler(BaseHandler):
         if not question:
             self.redirect('/')
         question['content'] = markdown.markdown(question.get('content', ''))
+        question['lastModified'] = question['lastModified'] + timedelta(hours=8)
         cursor = dbPosts.answers.find({'post_id': _id})
         answers = []
         for doc in cursor:
             doc['content'] = markdown.markdown(doc.get('content', ''))
+            doc['lastModified'] = doc['lastModified'] + timedelta(hours=8)
             answers.append(doc)
         self.xsrf_token
         self.render('question.html', out=question, answers=answers)
