@@ -17,10 +17,11 @@ dbUsers = mongo.users
 
 class BaseHandler(web.RequestHandler):
     def get_current_user(self):
+        #scookies = [domain, uid, uname]
         scookies = self.get_secure_cookie('scookies')
         if scookies:
             scookies = json.loads(scookies.decode('utf-8'))
-            if len(scookies) > 2 and scookies[0] and scookies[1]:
+            if len(scookies) >= 2 and scookies[0] and scookies[1]:
                 return scookies
         return None
 
@@ -28,8 +29,7 @@ class BaseHandler(web.RequestHandler):
         if _id and objectid.ObjectId.is_valid(_id):
             return objectid.ObjectId(_id)
         else:
-            self.write(json.dumps({'result':-1, 'msg':'invalid id!'}))
-            self.finish()
+            self.write_result(False, fail={'msg': 'invalid id!'})
     
     #after check result of mongo update/insert, write a feedback to ajax client
     #can customize the feedback info and whether finish write or not
@@ -146,8 +146,7 @@ class PostquestionHandler(BaseHandler):
             if (not q) or self.current_user[:2] != tuple(q['creator'])[:2]:
                 #TODO XXX: currently only owner can edit his post
                 #in the future maybe more users can edit it (depend on privilige)
-                self.write(json.dumps({'result':-1, 'msg':'fail to update!'}))
-                self.finish()
+                self.write_result(False, fail={'msg': 'fail to update!'})
         else:
             _id = objectid.ObjectId()       #create new page
 
@@ -161,15 +160,13 @@ class PostquestionHandler(BaseHandler):
                         '$currentDate': {'lastModified': True}},
                 upsert=True)
             if r.upserted_id:
-                self.write(json.dumps({'result':1, 'pageid': str(_id)}))
-                self.finish()
+                self.write_result(True, ok={'pageid': str(_id)})
             if r.modified_count:
-                self.write(json.dumps({'result':1, 'pageid': str(_id)}))
-                self.finish()
-            self.write(json.dumps({'result':-1, 'msg':'fail to insert!'}))
+                self.write_result(True, ok={'pageid': str(_id)})
+            self.write_result(False, fail={'msg': 'fail to insert!'})
         else:
-            self.write(json.dumps({'result':-1, 'msg': 'title and content ' +
-                'should not be empty'}))
+            self.write_result(False, fail={'msg': 'title and content should ' +
+                'be empty!'})
 
 class PostanswerHandler(BaseHandler):
     """handler for /ajax/post-answer. Contains both new answer and edit a old
@@ -183,8 +180,7 @@ class PostanswerHandler(BaseHandler):
         content = self.get_argument('content', None)
         answerid = self.get_argument('answerid', None)
         if not content:
-            self.write(json.dumps({'result':-1, 'msg':'invalid content!'}))
-            self.finish()
+            self.write_result(False, fail={'msg': 'invalid content!'})
 
         answer = dict(content=content, post_id=post_id)
         answer['creator'] = self.current_user
@@ -212,13 +208,14 @@ class EditAnswerHandler(BaseHandler):
         limits = {i: 1 for i in ('content', 'creator')}
         answer = dbPosts.answers.find_one({'_id': _id}, limits)
         if not answer:
-            self.write(json.dumps({'result':-1, 'msg': 'cannot find this answer!'}))
-            self.finish()
+            self.write_result(None, fail={'msg': 'cannot find this answer!'})
+            return
         #TODO XXX: currently only owner can edit his post
         #in the future maybe more users can edit it (depend on privilige)
-        if self.current_user[:2] != tuple(answer['creator'])[:2]:
-            self.write(json.dumps({'result':1, 'msg': 'you arenot the creator!'}))
-            self.finish()
+        creator = answer.get('creator', '')
+        if len(creator) > 1 and self.current_user[:2] != creator[:2]:
+            self.write_result(None, fail={'msg': 'you arenot the creator!'})
+            return
         answer.pop('_id')
         self.write(json.dumps(answer))
 
