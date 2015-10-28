@@ -16,6 +16,7 @@ if __name__ == '__main__':
         (r'/auth/github', GithubOauthHandler),
         (r'/auth/baidu', BaiduOauthHandler),
         (r'/auth/weibo', WeiboOauthHandler),
+        (r'/auth/check/admin', CheckAdminHandler),
         (r'/p/(.*)/?', ShowQuestionHandler),
         (r'/tag/(.*)', IndexHandler),
         #(r'/user/(.*)', UserHandler),

@@ -2,34 +2,27 @@
 import json
 from urllib.parse import quote
 
-from tornado import gen, web
-from pymongo import MongoClient
+from tornado import gen
 
 from auths import BaiduOAuth2Mixin, GithubOAuth2Mixin, WeiboOAuth2Mixin
 from settings import AUTH, HOST, REDIRECT_HOST
 
-mongo = MongoClient('mongodb://%s:27017' % HOST)
+from base import BaseHandler, dbUsers
 
-dbUsers = mongo.users
-
-class BaseHandler(web.RequestHandler):
-    def add_user(self, db_handler, domain, token, **body):
-        """Add user and related info to mongodb and cookie.
-        uid should be stored as string but not int"""
-        uid = body.pop('uid', None)
-        if uid:
-            uid = str(uid)
-            #save user info securely and save an unsafe "uname" cookie so that
-            #client js can get username
-            uname = body.get('uname', uid)
-            scookies = json.dumps([domain, uid, uname])
-            self.set_secure_cookie('scookies', scookies)
-            #some usernames has characters that cookie disallowed, encode it
-            self.set_cookie('uname', quote(uname))
-            body.update(authdomain=domain, token=token)
-            r = db_handler.update_one({'uid': uid, 'authdomain': domain},
-                    {'$set': body}, upsert=True)
-            print('modified_count:', r.modified_count)
+class CheckAdminHandler(BaseHandler):
+    """Check if a user is admin; used in ningx aut_request module"""
+    @gen.coroutine
+    def get(self):
+        _user = self.current_user
+        if _user and len(_user) > 1:
+            domain, uid = _user[0], _user[1]
+            user = dbUsers.users.find_one({'authdomain': domain, 'uid': uid})
+            if user and user.get('group') == 'admin':
+                self.set_status(200)
+                self.finish()
+                return
+        self.set_status(403)
+        self.finish()
 
 class GithubOauthHandler(BaseHandler, GithubOAuth2Mixin):
     """TODO XXX could get token from cookie in the future"""

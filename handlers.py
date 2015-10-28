@@ -5,46 +5,12 @@ from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 import markdown
-from tornado import gen, httpclient, ioloop, web
-from pymongo import MongoClient
+from tornado import gen, web
 
-from settings import HOST
-
-mongo = MongoClient('mongodb://%s:27017' % HOST)
-
-dbPosts = mongo.posts
-dbUsers = mongo.users
-
-class BaseHandler(web.RequestHandler):
-    def get_current_user(self):
-        #scookies = [domain, uid, uname]
-        scookies = self.get_secure_cookie('scookies')
-        if scookies:
-            scookies = json.loads(scookies.decode('utf-8'))
-            if len(scookies) >= 2 and scookies[0] and scookies[1]:
-                return scookies
-        return None
-
-    def mongo_check_id(self, _id):
-        if _id and objectid.ObjectId.is_valid(_id):
-            return objectid.ObjectId(_id)
-        else:
-            self.write_result(False, fail={'msg': 'invalid id!'})
-    
-    #after check result of mongo update/insert, write a feedback to ajax client
-    #can customize the feedback info and whether finish write or not
-    def write_result(self, result, ok={'msg':'OK'}, fail={'msg':'FAIL'},
-            finish=True):
-        if result:
-            ok['result'] = 1
-            self.write(json.dumps(ok))
-        else:
-            fail['result'] = -1
-            self.write(json.dumps(fail))
-        if finish:
-            self.finish()
+from base import BaseHandler, dbPosts, dbUsers
 
 class IndexHandler(BaseHandler):
+    @gen.coroutine
     def get(self, tag=None):
         if tag:
             flt = {'tags': tag}
@@ -69,6 +35,7 @@ class IndexHandler(BaseHandler):
         self.render('index.html', out=questions)
 
 class UserHandler(BaseHandler):
+    @gen.coroutine
     def get(self, user):
         if '_' not in user:
             self.redirect('/')
@@ -91,12 +58,14 @@ class AskHandler(BaseHandler):
         self.edit = edit
 
     @web.authenticated
+    @gen.coroutine
     def get(self):
         self.xsrf_token
         self.render('ask.html', edit=self.edit)
 
 class ShowQuestionHandler(BaseHandler):
     """handler for /p/id: id is the _id key of a mongo document (posts)"""
+    @gen.coroutine
     def get(self, pageid):
         _id = self.mongo_check_id(pageid)
         create_time = _id.generation_time
@@ -119,6 +88,7 @@ class ShowQuestionHandler(BaseHandler):
 class EditQuestionHandler(BaseHandler):
     """handler for /ajax/edit-question"""
     @web.authenticated
+    @gen.coroutine
     def get(self):
         editid = self.get_argument('editid', '')
         _id = self.mongo_check_id(editid)
@@ -134,6 +104,7 @@ class EditQuestionHandler(BaseHandler):
 class PostquestionHandler(BaseHandler):
     """handler for /ajax/post-question: post new or an edited old page"""
     @web.authenticated
+    @gen.coroutine
     def post(self):
         title = self.get_argument('title', None)
         content = self.get_argument('content', None)
@@ -173,6 +144,7 @@ class PostanswerHandler(BaseHandler):
     answer"""
 
     @web.authenticated
+    @gen.coroutine
     def post(self):
         pathname = self.get_argument('pathname', '/p/')
         pathname = pathname[3:]             #skip the /p/ in the head
@@ -202,6 +174,7 @@ class PostanswerHandler(BaseHandler):
 class EditAnswerHandler(BaseHandler):
     """handler for /ajax/edit-answer"""
     @web.authenticated
+    @gen.coroutine
     def get(self):
         _id = self.get_argument('_id', '')
         _id = self.mongo_check_id(_id)
@@ -222,6 +195,7 @@ class EditAnswerHandler(BaseHandler):
 class PostCommentHandler(BaseHandler):
     """handler for /ajax/post-comment"""
     @web.authenticated
+    @gen.coroutine
     def post(self):
         _id = self.get_argument('pathname', '/p/')[3:]
         _id = self.mongo_check_id(_id)
@@ -245,6 +219,7 @@ class PostCommentHandler(BaseHandler):
 class VoteHandler(BaseHandler):
     """handler for /ajax/vote. Store vote under user collection."""
     @web.authenticated
+    @gen.coroutine
     def get(self):
         _id = self.get_argument('_id', None)
         content = self.get_argument('content', None)
