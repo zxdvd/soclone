@@ -12,15 +12,17 @@ from base import BaseHandler, dbPosts, dbUsers
 class IndexHandler(BaseHandler):
     @gen.coroutine
     def get(self, tag=None):
+        flt = {}
         if tag:
             flt = {'tags': tag}
-        else:
-            flt = {}
         page = self.get_argument('page', '1')
         try:
             page = int(page)
         except ValueError:
             page = 1
+        #only show 3 pages at most
+        if page > 3:
+            page = 3
         limits = {i: 1 for i in ('content', 'creator', 'tags', 'title',
             'lastModified')}
         page = page - 1              #first page skip 0, second skip 1*10
@@ -32,7 +34,7 @@ class IndexHandler(BaseHandler):
             #TODO XXX: a rough way to convert time to china localtime
             q['lastModified'] = q['lastModified'] + timedelta(hours=8)
             questions.append(q)
-        self.render('index.html', out=questions)
+        self.render(self.templdir+'index.html', out=questions)
 
 class UserHandler(BaseHandler):
     @gen.coroutine
@@ -68,10 +70,8 @@ class ShowQuestionHandler(BaseHandler):
     @gen.coroutine
     def get(self, pageid):
         _id = self.mongo_check_id(pageid)
-        create_time = _id.generation_time
-        limits = {i: 1 for i in ('content', 'creator', 'tags', 'title',
-            'lastModified', 'commentCount', 'comments', 'voteCount')}
-        question = dbPosts.posts.find_one({'_id': _id}, limits)
+        #create_time = _id.generation_time
+        question = dbPosts.posts.find_one({'_id': _id})
         if not question:
             self.redirect('/')
         question['content'] = markdown.markdown(question.get('content', ''))
@@ -82,8 +82,8 @@ class ShowQuestionHandler(BaseHandler):
             doc['content'] = markdown.markdown(doc.get('content', ''))
             doc['lastModified'] = doc['lastModified'] + timedelta(hours=8)
             answers.append(doc)
-        self.xsrf_token
-        self.render('question.html', out=question, answers=answers)
+        self.render(self.templdir+'question.html', out=question, answers=answers)
+
 
 class EditQuestionHandler(BaseHandler):
     """handler for /ajax/edit-question"""
@@ -118,6 +118,7 @@ class PostquestionHandler(BaseHandler):
                 #TODO XXX: currently only owner can edit his post
                 #in the future maybe more users can edit it (depend on privilige)
                 self.write_result(False, fail={'msg': 'fail to update!'})
+                return
         else:
             _id = objectid.ObjectId()       #create new page
 
@@ -130,9 +131,7 @@ class PostquestionHandler(BaseHandler):
                     {'$set': post, '$push': {'history': post},
                         '$currentDate': {'lastModified': True}},
                 upsert=True)
-            if r.upserted_id:
-                self.write_result(True, ok={'pageid': str(_id)})
-            if r.modified_count:
+            if r.upserted_id or r.modified_count:
                 self.write_result(True, ok={'pageid': str(_id)})
             self.write_result(False, fail={'msg': 'fail to insert!'})
         else:

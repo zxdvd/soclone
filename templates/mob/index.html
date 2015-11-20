@@ -1,0 +1,21 @@
+{% extends "index-base.html" %}
+
+{% block head %}
+  <title>BuFeiHua - BFH</title>
+{% end %}
+
+{% block content %}
+  {% for q in out %}
+    <div class="clearfix m1 mb2 border-top border-blue">
+      <a href="/p/{{ q['_id'] }}" class="h3 black">{{ q['title'] }}</a>
+      <div class="block">
+      {% for tag in q['tags'] %}
+        <a href="/tag/{{ tag }}" class="h5 mr1 white bg-teal rounded">{{ tag }}</a>
+      {% end %}
+      <a href="/user/{{q.get('creator','X')[0]}}_{{q.get('creator','XX')[1]}}" class="right mr1 h5 black bg-silver rounded"> {{q.get('creator','XXX')[2]}}</a>
+      </div>
+    </div>
+  {% end %}
+  <script>
+  </script>
+{% end %}

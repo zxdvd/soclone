@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block header %}
+<div class="mb1 blue bg-gray">
+  <a href="/" class="btn h3">BFH</a>
+  <a id="login" href="#" class="right btn">登录</a>
+</div>
+{% end %}
+{% block footer %}
+<div class="center border-top">
+<button id="switch-desktop" class="m1 btn fit">桌面版</button>
+</div>
+<script src="/static/js/js.cookie.js?v=2.0.3"></script>
+<script>
+var username = Cookies.get('uname');
+console.log(username);
+if (username) {
+    $('#login').text(username);
+}
+$('#switch-desktop').click(function() {
+    Cookies.set('mob', '0');
+    location.reload();
+});
+</script>
+{% end %}

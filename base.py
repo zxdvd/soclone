@@ -1,6 +1,7 @@
 
 import json
 from bson import objectid
+from datetime import datetime, timedelta
 
 from tornado import gen, web
 from pymongo import MongoClient
@@ -58,4 +59,23 @@ class BaseHandler(web.RequestHandler):
             self.write(json.dumps(fail))
         if finish:
             self.finish()
+
+    def prepare(self):
+        """Check mobile browser of not.
+        First check from cookie, if not found detect from User Agent."""
+        mob = self.get_cookie('mob', None)
+        if mob == '1':
+            self.templdir = 'mob/'
+        elif mob == '0':
+            self.templdir = ''
+        else:
+            UA = self.request.headers.get('User-Agent', '').lower()
+            mobile = ['android', 'iphone', 'googlebot-mobile']
+            if any(i in UA for i in mobile):
+                self.set_cookie('mob', '1')
+                self.templdir = 'mob/'
+            else:
+                self.set_cookie('mob', '0')
+                self.templdir = ''
+
 
