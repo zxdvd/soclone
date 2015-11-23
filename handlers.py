@@ -34,6 +34,7 @@ class IndexHandler(BaseHandler):
             #TODO XXX: a rough way to convert time to china localtime
             q['lastModified'] = q['lastModified'] + timedelta(hours=8)
             questions.append(q)
+        self.add_header('Vary', 'User-Agent')
         self.render(self.templdir+'index.html', out=questions)
 
 class UserHandler(BaseHandler):
@@ -82,6 +83,7 @@ class ShowQuestionHandler(BaseHandler):
             doc['content'] = markdown.markdown(doc.get('content', ''))
             doc['lastModified'] = doc['lastModified'] + timedelta(hours=8)
             answers.append(doc)
+        self.add_header('Vary', 'User-Agent')
         self.render(self.templdir+'question.html', out=question, answers=answers)
 
 
