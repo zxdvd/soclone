@@ -28,12 +28,8 @@ class IndexHandler(BaseHandler):
         page = page - 1              #first page skip 0, second skip 1*10
         r = dbPosts.posts.find(flt, limits, sort=[('lastModified', -1)],
                 skip=page*10, limit=10)
-        questions = []
-        for q in r:
-            q['_id'] = str(q['_id'])
-            #TODO XXX: a rough way to convert time to china localtime
-            q['lastModified'] = q['lastModified'] + timedelta(hours=8)
-            questions.append(q)
+        questions = [i for i in r if i]
+        self.xsrf_token
         self.add_header('Vary', 'User-Agent')
         self.render(self.templdir+'index.html', out=questions)
 
@@ -44,14 +40,21 @@ class UserHandler(BaseHandler):
             self.redirect('/')
         domain, uid = user.split('_', 1)
         items={}
-        limits = {i: 1 for i in ('creator', 'tags', 'title')}
-        r = dbPosts.posts.find({'creator': {'$all': [domain, uid]}},
-                limits).limit(4)
-        items['questions'] = []
-        for i in r:
-            i['_id'] = str(i['_id'])
-            items['questions'].append(i)
 
+        #get all answers answered by someone
+        r = dbPosts.answers.find({'creator': {'$all': [domain, uid]}},
+                sort=[('lastModified', -1)], limit=10)
+        #get all posts against the answers
+        tmp = [i.get('post_id', ' ') for i in r]
+        posts = dbPosts.posts.find({'_id': {'$in': tmp}},
+                sort=[('lastModified', -1)])
+        items['answers'] = [i for i in posts if i]
+
+        posts = dbPosts.posts.find({'creator': {'$all': [domain, uid]}},
+                sort=[('lastModified', -1)], limit=10)
+        items['questions'] = [i for i in posts if i]
+
+        self.xsrf_token
         self.render('user.html', items = items)
 
 class AskHandler(BaseHandler):
@@ -76,16 +79,25 @@ class ShowQuestionHandler(BaseHandler):
         if not question:
             self.redirect('/')
         question['content'] = markdown.markdown(question.get('content', ''))
-        question['lastModified'] = question['lastModified'] + timedelta(hours=8)
         cursor = dbPosts.answers.find({'post_id': _id})
         answers = []
         for doc in cursor:
             doc['content'] = markdown.markdown(doc.get('content', ''))
-            doc['lastModified'] = doc['lastModified'] + timedelta(hours=8)
             answers.append(doc)
+        self.xsrf_token
         self.add_header('Vary', 'User-Agent')
         self.render(self.templdir+'question.html', out=question, answers=answers)
 
+class AboutPageHandler(BaseHandler):
+    """handler for page like /about (it redirects to a normal question)"""
+    @gen.coroutine
+    def get(self, url):
+        post = dbPosts.posts.find_one({'linkurl': '/'+url})
+        if post:
+            _id = str(post.get('_id', ''))
+            self.redirect('/p/'+_id, status=301)
+        else:
+            self.redirect('/')
 
 class EditQuestionHandler(BaseHandler):
     """handler for /ajax/edit-question"""

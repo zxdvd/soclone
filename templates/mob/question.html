@@ -5,6 +5,7 @@
 {% end %}
 
 {% block content %}
+{% from utils import utc_to_utc8 %}
 <div class="m2">
   <div>
     <p class="h3 border-bottom">{{ out['title'] }}</p>
@@ -13,7 +14,7 @@
           <a class="h4 mr1 white bg-teal rounded" href="/tag/{{ tag }}">{{ tag }}</a>
         {% end %}
         <a class="h4 mr1 black bg-silver rounded" href="#">{{ out.get('creator', 'XXX')[2] }}</a>
-        <p>{{ out['lastModified'].strftime(' %Y/%m/%d  %H:%M ') }}</p>
+        <p>{{ utc_to_utc8(out['lastModified']) }}</p>
         <div>{% raw out['content'] %}</div>
         <button class="h4 px1 bg-white border border-black rounded showcomments">
             {% if out.get('commentCount', 0) > 0 %}  
@@ -29,7 +30,7 @@
               <div class="well well-sm">
                   {{ c.get('content', None) }}<br>
                   by <a href="#">{{c.get('creator', 'XXX')[2]}}</a>
-                  @{{c['time'].strftime(' %Y/%m/%d  %H:%M ')}}
+                  @{{ utc_to_utc8(c['time']) }}
               </div>
             {% end %}
           {% end %}
@@ -43,7 +44,7 @@
     <div id="{{answer['_id']}}" class="answer">
       {% raw answer['content'] %}
       by <a href="#">{{answer.get('creator','XXX')[2]}}</a>
-      @{{answer['lastModified'].strftime(' %Y/%m/%d  %H:%M ')}}
+      @{{ utc_to_utc8(answer['lastModified']) }}
       <br>
       <button class="h4 px1 bg-white border border-black rounded showcomments">
         {% if answer.get('commentCount', 0) > 0 %}  
@@ -59,7 +60,7 @@
             <div class="well well-sm">
                 {{ c.get('content', None) }}<br>
                 by <a href="#">{{c.get('creator', 'XXX')[2]}}</a>
-                @{{c['time'].strftime(' %Y/%m/%d  %H:%M ')}}
+                @{{ utc_to_utc8(c['time']) }}
             </div>
           {% end %}
         {% end %}

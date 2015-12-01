@@ -12,10 +12,11 @@
             <input type="search" class="form-control" name="search"
                    placeholder="Search a question">
           </div>
-          <button type="submit" class="btn btn-default btn-lg">搜索</button>
-          <a  class="btn btn-default btn-lg" href="/ask" role="button">提问</a>
+          <button type="submit" class="btn btn-link">搜索</button>
+          <a class="btn btn-link" href="/ask">提问</a>
         </form>
         <ul class="nav navbar-nav navbar-right" id="navlogin">
+          <li><a href="/about">关于</a></li>
           <li><a href="/login" data-toggle="modal" data-target="#loginmodal">
                   一键登录</a></li>
         </ul>
@@ -48,18 +49,15 @@
 <script>
 var username = Cookies.get('uname');
 if (username) {
-    $('#navlogin > li').remove();
+    $('#navlogin > li:last').remove();
     $('#navlogin').append('<li><a href="/user">'+username+'</a></li>');
     $('#navlogin').append('<li><a href="#" id="logout">退出登录</a></li>');
 }
 $('#logout').click(function(e){
-    Cookies.remove('authdomain');
     Cookies.remove('uname');
-    Cookies.remove('username');
-    Cookies.remove('uid');
-    Cookies.remove('token');
+    Cookies.remove('scookies');
     $('#navlogin > li').remove();
-    $('#navlogin').append('<li><a href="/login" data-toggle="modal" data-target="#loginmodal">一键登录</a></li>');
+    $('#navlogin').append('<li><a href="/about">关于</a></li><li><a href="/login" data-toggle="modal" data-target="#loginmodal">一键登录</a></li>');
 });
 $('#switch-mob').click(function() {
     Cookies.set('mob', '1');

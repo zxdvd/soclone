@@ -5,6 +5,7 @@
 {% end %}
 
 {% block content %}
+{% from utils import utc_to_utc8 %}
   <div class="container-fluid">
     <div class="row">
       <div class="col-sm-9">
@@ -28,8 +29,8 @@
                   {% for tag in out['tags'] %}
                   <a class="btn btn-link btn-sm" href="/tag/{{ tag }}" role="button">{{ tag }}</a>
                   {% end %}
-                  by <a href="#">{{ out.get('creator', 'XXX')[2] }}</a>
-                  @ {{ out['lastModified'].strftime(' %Y/%m/%d  %H:%M ') }}
+                  by <a href="/user/{{out.get('creator', 'X')[0]}}_{{out.get('creator', 'XX')[1]}}">{{ out.get('creator', 'XXX')[2] }}</a>
+                  @ {{ utc_to_utc8(out['lastModified']) }}
                 </div>
                 <div>{% raw out['content'] %}</div>
                 <button class="btn btn-link btn-sm showcomments">
@@ -46,7 +47,7 @@
                       <div class="well well-sm">
                           {{ c.get('content', None) }}<br>
                           by <a href="#">{{c.get('creator', 'XXX')[2]}}</a>
-                          @{{c['time'].strftime(' %Y/%m/%d  %H:%M ')}}
+                          @{{ utc_to_utc8(c['time']) }}
                       </div>
                     {% end %}
                   {% end %}
@@ -73,8 +74,8 @@
           </div>
           <div id="{{answer['_id']}}" class="answer col-sm-11">
             {% raw answer['content'] %}
-            by <a href="#">{{answer.get('creator','XXX')[2]}}</a>
-            @{{answer['lastModified'].strftime(' %Y/%m/%d  %H:%M ')}}
+            by <a href="/user/{{answer.get('creator', 'X')[0]}}_{{answer.get('creator', 'XX')[1]}}">{{answer.get('creator','XXX')[2]}}</a>
+            @{{ utc_to_utc8(answer['lastModified']) }}
             <button class="btn btn-link btn-sm pull-right editanswer">修改</button>
             <br>
             <button class="btn btn-link btn-sm showcomments">
@@ -90,7 +91,7 @@
                   <div class="well well-sm">
                       {{ c.get('content', None) }}<br>
                       by <a href="#">{{c.get('creator', 'XXX')[2]}}</a>
-                      @{{c['time'].strftime(' %Y/%m/%d  %H:%M ')}}
+                      @{{ utc_to_utc8(c['time'])}}
                   </div>
                 {% end %}
               {% end %}

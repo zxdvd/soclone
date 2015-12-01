@@ -2,6 +2,7 @@
 import json
 from bson import objectid
 from datetime import datetime, timedelta
+from urllib.parse import quote
 
 from tornado import gen, web
 from pymongo import MongoClient
@@ -35,7 +36,7 @@ class BaseHandler(web.RequestHandler):
             scookies = json.dumps([domain, uid, uname])
             self.set_secure_cookie('scookies', scookies)
             #some usernames has characters that cookie disallowed, encode it
-            self.set_cookie('uname', quote(uname))
+            self.set_cookie('uname', quote(uname), expires_days=30)
             body.update(authdomain=domain, token=token)
             r = db_handler.update_one({'uid': uid, 'authdomain': domain},
                     {'$set': body}, upsert=True)
@@ -70,12 +71,12 @@ class BaseHandler(web.RequestHandler):
             self.templdir = ''
         else:
             UA = self.request.headers.get('User-Agent', '').lower()
-            mobile = ['android', 'iphone', 'googlebot-mobile']
+            mobile = ['android', 'iphone', 'mobile', 'googlebot-mobile']
             if any(i in UA for i in mobile):
-                self.set_cookie('mob', '1')
+                self.set_cookie('mob', '1', expires_days=30)
                 self.templdir = 'mob/'
             else:
-                self.set_cookie('mob', '0')
+                self.set_cookie('mob', '0', expires_days=30)
                 self.templdir = ''
 
 

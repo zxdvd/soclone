@@ -5,6 +5,7 @@
 {% end %}
 
 {% block content %}
+{% from utils import utc_to_utc8 %}
   <div class="container-fluid">
     <div class="row">
       <div class="col-sm-9">
@@ -25,7 +26,7 @@
               <a class="btn btn-link btn-sm" href="/tag/{{ tag }}" role="button">{{ tag }}</a>
               {% end %}
               by <a href="/user/{{q.get('creator','X')[0]}}_{{q.get('creator','XX')[1]}}"> {{q.get('creator','XXX')[2]}}</a>
-                @ {{ q['lastModified'].strftime(' %Y/%m/%d  %H:%M ') }}
+                @ {{ utc_to_utc8(q['lastModified']) }}
               </div>
             </div>
           {% end %}
